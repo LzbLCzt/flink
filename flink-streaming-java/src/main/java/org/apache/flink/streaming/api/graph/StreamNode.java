@@ -82,7 +82,7 @@ public class StreamNode {
     private List<StreamEdge> inEdges = new ArrayList<StreamEdge>();
     private List<StreamEdge> outEdges = new ArrayList<StreamEdge>();
 
-    private final Class<? extends TaskInvokable> jobVertexClass;
+    private final Class<? extends TaskInvokable> jobVertexClass;    //后续Task生成时会借用vertexClass的值以反射的形式生成Task实例
 
     private InputFormat<?, ?> inputFormat;
     private OutputFormat<?> outputFormat;

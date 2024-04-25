@@ -497,7 +497,7 @@ public class StreamGraphGenerator {
             }
         }
 
-        transform
+        transform   //收集每个Transformation的槽位共享组信息
                 .getSlotSharingGroup()
                 .ifPresent(
                         slotSharingGroup -> {
@@ -530,11 +530,11 @@ public class StreamGraphGenerator {
         @SuppressWarnings("unchecked")
         final TransformationTranslator<?, Transformation<?>> translator =
                 (TransformationTranslator<?, Transformation<?>>)
-                        translatorMap.get(transform.getClass());
+                        translatorMap.get(transform.getClass());    //根据Transformation.class类型，从translatorMap获取对应的TransformationTranslator
 
         Collection<Integer> transformedIds;
         if (translator != null) {
-            transformedIds = translate(translator, transform);
+            transformedIds = translate(translator, transform);  //生成StreamNode、StreamEdge
         } else {
             transformedIds = legacyTransform(transform);
         }
@@ -833,7 +833,7 @@ public class StreamGraphGenerator {
         }
 
         for (Transformation<?> transformation : parentTransformations) {
-            allInputIds.add(transform(transformation));
+            allInputIds.add(transform(transformation)); //递归的先处理上游的transformation
         }
         return allInputIds;
     }

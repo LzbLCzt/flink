@@ -91,7 +91,7 @@ abstract class AbstractOneInputTransformationTranslator<IN, OUT, OP extends Tran
                         + parentTransformations.size());
 
         for (Integer inputId : context.getStreamNodeIds(parentTransformations.get(0))) {
-            streamGraph.addEdge(inputId, transformationId, 0);
+            streamGraph.addEdge(inputId, transformationId, 0);  //添加边
         }
 
         if (transformation instanceof PhysicalTransformation) {

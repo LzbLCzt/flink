@@ -215,6 +215,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         super.open();
 
         this.numLateRecordsDropped = metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
+        //创建一个基于时间戳的数据收集器，用于输出窗口数据到下游
         timestampedCollector = new TimestampedCollector<>(output);
 
         internalTimerService = getInternalTimerService("window-timers", windowSerializer, this);
@@ -230,7 +231,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                     }
                 };
 
-        // create (or restore) the state that hold the actual window contents
+        // create (or restore) the state that hold the actual window contents(创建windowState，用于储存窗口中的数据)
         // NOTE - the state may be null in the case of the overriding evicting window operator
         if (windowStateDescriptor != null) {
             windowState =
@@ -239,7 +240,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         }
 
         // create the typed and helper states for merging windows
-        if (windowAssigner instanceof MergingWindowAssigner) {
+        if (windowAssigner instanceof MergingWindowAssigner) {  //window用的是SessionWindow
 
             // store a typed reference for the state of merging windows - sanity check
             if (windowState instanceof InternalMergingState) {
@@ -279,6 +280,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     @Override
     public void processElement(StreamRecord<IN> element) throws Exception {
+        //获取element对应的窗口
         final Collection<W> elementWindows =
                 windowAssigner.assignWindows(
                         element.getValue(), element.getTimestamp(), windowAssignerContext);
@@ -286,8 +288,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         // if element is handled by none of assigned elementWindows
         boolean isSkippedElement = true;
 
-        final K key = this.<K>getKeyedStateBackend().getCurrentKey();
+        final K key = this.<K>getKeyedStateBackend().getCurrentKey();   //此处获取到key的值，即keyBy方法字段的值
 
+        //// 判断Window是否是MergingWindowAssigner(合并窗口)的子类。比如SessionWindow属于MergingWindowAssigner
         if (windowAssigner instanceof MergingWindowAssigner) {
             MergingWindowSet<W> mergingWindows = getMergingWindowSet();
 
@@ -390,15 +393,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
             // need to make sure to update the merging state in state
             mergingWindows.persist();
-        } else {
+        } else {    // 非MergingWindowAssigner部分的处理逻辑
             for (W window : elementWindows) {
 
                 // drop if the window is already late
                 if (isWindowLate(window)) {
                     continue;
                 }
-                isSkippedElement = false;
+                isSkippedElement = false;   //标记该元素得到了处理
 
+                // windowState为HeapListState
+                // HeapListState为内存中存储的分区化的链表状态(ListState)，使用namespace区分不同窗口的数据。可以理解为一个Map，key为window对象，value为元素的值
                 windowState.setCurrentNamespace(window);
                 windowState.add(element.getValue());
 
@@ -407,18 +412,18 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
                 TriggerResult triggerResult = triggerContext.onElement(element);
 
-                if (triggerResult.isFire()) {
-                    ACC contents = windowState.get();
+                if (triggerResult.isFire()) {   //触发计算
+                    ACC contents = windowState.get();   // 取出windowState当前namespace下所有的元素。即当前window下所有的元素
                     if (contents == null) {
                         continue;
                     }
-                    emitWindowContents(window, contents);
+                    emitWindowContents(window, contents);   //// 使用用户传入的处理函数来计算window内数据
                 }
 
-                if (triggerResult.isPurge()) {
+                if (triggerResult.isPurge()) {  //是否清理window数据
                     windowState.clear();
                 }
-                registerCleanupTimer(window);
+                registerCleanupTimer(window);// 注册timer，当前时间已经过了window的cleanup时间（后面有cleanup time的含义），会根据窗口的类型调用对应的onProcessingTime方法或者是onEventTime方法
             }
         }
 
@@ -427,6 +432,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
         // late arriving tag has been set
         // windowAssigner is event time and current timestamp + allowed lateness no less than
         // element timestamp
+        // 如果元素没有被window处理，并且元素来迟，会加入到旁路输出
         if (isSkippedElement && isElementLate(element)) {
             if (lateDataOutputTag != null) {
                 sideOutput(element);
