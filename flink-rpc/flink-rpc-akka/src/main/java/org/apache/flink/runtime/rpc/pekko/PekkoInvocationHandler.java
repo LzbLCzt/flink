@@ -133,6 +133,7 @@ class PekkoInvocationHandler implements InvocationHandler, PekkoBasedEndpoint, R
                 || declaringClass.equals(StartStoppable.class)
                 || declaringClass.equals(MainThreadExecutable.class)
                 || declaringClass.equals(RpcServer.class)) {
+            /*TODO 如果是网关类的调用，走这里*/
             result = method.invoke(this, args);
         } else if (declaringClass.equals(FencedRpcGateway.class)) {
             throw new UnsupportedOperationException(
@@ -142,6 +143,7 @@ class PekkoInvocationHandler implements InvocationHandler, PekkoBasedEndpoint, R
                             + "fencing token. Please use RpcService#connect(RpcService, F, Time) with F being the fencing token to "
                             + "retrieve a properly FencedRpcGateway.");
         } else {
+            /*TODO 如果不是网关类的，走这里，处理RPC请求*/
             result = invokeRpc(method, args);
         }
 
@@ -237,7 +239,7 @@ class PekkoInvocationHandler implements InvocationHandler, PekkoBasedEndpoint, R
 
         final Object result;
 
-        if (Objects.equals(returnType, Void.TYPE)) {    /* todo 使用tell方式 */
+        if (Objects.equals(returnType, Void.TYPE)) {    /* todo 使用tell方式，把消息发送到对端rpcEndpoint */
             tell(rpcInvocation);
 
             result = null;
@@ -251,7 +253,7 @@ class PekkoInvocationHandler implements InvocationHandler, PekkoBasedEndpoint, R
 
             // execute an asynchronous call
             final CompletableFuture<?> resultFuture =
-                    ask(rpcInvocation, futureTimeout)   /* todo 使用ask方式 */
+                    ask(rpcInvocation, futureTimeout)   /* todo 使用ask方式,把消息发送到对端rpcEndpoint */
                             .thenApply(
                                     resultValue ->
                                             deserializeValueIfNeeded(
@@ -273,6 +275,7 @@ class PekkoInvocationHandler implements InvocationHandler, PekkoBasedEndpoint, R
                     });
 
             if (Objects.equals(returnType, CompletableFuture.class)) {
+                /*TODO 如果返回类型是 CompletableFuture，直接把 CompletableFuture对象返回（不用阻塞）*/
                 result = completableFuture;
             } else {
                 try {

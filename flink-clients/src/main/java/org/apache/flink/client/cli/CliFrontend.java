@@ -219,11 +219,11 @@ public class CliFrontend {
      *
      * @param args Command line arguments for the run action.
      */
-    protected void run(String[] args) throws Exception {
+    protected void run(String[] args) throws Exception {    //todo 这里的String[] args时flink命令中的参数：如flink -run ../xx.jar mainclass
         LOG.info("Running 'run' command.");
 
         final Options commandOptions = CliFrontendParser.getRunCommandOptions();
-        final CommandLine commandLine = getCommandLine(commandOptions, args, true);
+        final CommandLine commandLine = getCommandLine(commandOptions, args, true); //todo 解析参数
 
         // evaluate help flag
         if (commandLine.hasOption(HELP_OPTION.getOpt())) {
@@ -1422,13 +1422,13 @@ public class CliFrontend {
     public static List<CustomCommandLine> loadCustomCommandLines(
             Configuration configuration, String configurationDirectory) {
         List<CustomCommandLine> customCommandLines = new ArrayList<>();
-        customCommandLines.add(new GenericCLI(configuration, configurationDirectory));
+        customCommandLines.add(new GenericCLI(configuration, configurationDirectory));  //todo 对应Standalone提交模式
 
         //	Command line interface of the YARN session, with a special initialization here
         //	to prefix all options with y/yarn.
         final String flinkYarnSessionCLI = "org.apache.flink.yarn.cli.FlinkYarnSessionCli";
         try {
-            customCommandLines.add(
+            customCommandLines.add( //todo 对应Yarn提交模式
                     loadCustomCommandLine(
                             flinkYarnSessionCLI,
                             configuration,
@@ -1448,7 +1448,7 @@ public class CliFrontend {
         //	Tips: DefaultCLI must be added at last, because getActiveCustomCommandLine(..) will get
         // the
         //	      active CustomCommandLine in order and DefaultCLI isActive always return true.
-        customCommandLines.add(new DefaultCLI());
+        customCommandLines.add(new DefaultCLI());   //todo 如果前两种模式都没匹配到，用这个默认的
 
         return customCommandLines;
     }

@@ -69,13 +69,15 @@ public class AbstractJobClusterExecutor<
             @Nonnull final ClassLoader userCodeClassloader)
             throws Exception {
         final JobGraph jobGraph =
-                PipelineExecutorUtils.getJobGraph(pipeline, configuration, userCodeClassloader);
+                PipelineExecutorUtils.getJobGraph(pipeline, configuration, userCodeClassloader);    //todo 将Stream graph -> job graph
 
-        try (final ClusterDescriptor<ClusterID> clusterDescriptor =
+        /*TODO 集群描述器：创建、启动了 YarnClient， 包含了一些yarn、flink的配置和环境信息*/
+        try (final ClusterDescriptor<ClusterID> clusterDescriptor = //todo ClusterDescriptor封装了yarnClient
                 clusterClientFactory.createClusterDescriptor(configuration)) {
             final ExecutionConfigAccessor configAccessor =
                     ExecutionConfigAccessor.fromConfiguration(configuration);
 
+            /*TODO 集群特有资源配置：JobManager内存、TaskManager内存、每个Tm的slot数*/
             final ClusterSpecification clusterSpecification =
                     clusterClientFactory.getClusterSpecification(configuration);
 

@@ -307,7 +307,7 @@ class PekkoRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
                 if (rpcMethod.getReturnType().equals(Void.TYPE)) {
                     // No return value to send back
                     runWithContextClassLoader(
-                            () -> capturedRpcMethod.invoke(rpcEndpoint, rpcInvocation.getArgs()),
+                            () -> capturedRpcMethod.invoke(rpcEndpoint, rpcInvocation.getArgs()),   //写一个SupplierWithException的匿名实现对象，重写get方法。用于执行capturedRpcMethod
                             flinkClassLoader);
                 } else {
                     final Object result;
@@ -358,7 +358,7 @@ class PekkoRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
                 getSender().tell(new Status.Failure(serializedResult.right()), getSelf());
             }
         } else {
-            getSender().tell(new Status.Success(response), getSelf());
+            getSender().tell(new Status.Success(response), getSelf());  //告知sender：请求处理成功
         }
     }
 
@@ -368,7 +368,7 @@ class PekkoRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
         Promise.DefaultPromise<Object> promise = new Promise.DefaultPromise<>();
 
         FutureUtils.assertNoException(
-                asyncResponse.handle(
+                asyncResponse.handle(   //这里传入一个BiFunction，重写apply方法（两个入参）
                         (value, throwable) -> {
                             if (throwable != null) {
                                 promise.failure(throwable);
@@ -379,12 +379,12 @@ class PekkoRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
                                             serializeRemoteResultAndVerifySize(value, methodName);
 
                                     if (serializedResult.isLeft()) {
-                                        promise.success(serializedResult.left());
+                                        promise.success(serializedResult.left());   //告知sender：请求处理成功
                                     } else {
                                         promise.failure(serializedResult.right());
                                     }
                                 } else {
-                                    promise.success(new Status.Success(value));
+                                    promise.success(new Status.Success(value)); //告知sender：请求处理成功
                                 }
                             }
 
@@ -493,7 +493,7 @@ class PekkoRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
      */
     private Method lookupRpcMethod(final String methodName, final Class<?>[] parameterTypes)
             throws NoSuchMethodException {
-        return rpcEndpoint.getClass().getMethod(methodName, parameterTypes);
+        return rpcEndpoint.getClass().getMethod(methodName, parameterTypes);    //通过反射获取指定rpcEndpoint的方法
     }
 
     /**

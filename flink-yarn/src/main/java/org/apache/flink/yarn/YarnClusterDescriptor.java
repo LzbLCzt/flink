@@ -26,6 +26,7 @@ import org.apache.flink.client.deployment.ClusterDescriptor;
 import org.apache.flink.client.deployment.ClusterRetrieveException;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.deployment.application.ApplicationConfiguration;
+import org.apache.flink.client.program.ClusterClient;
 import org.apache.flink.client.program.ClusterClientProvider;
 import org.apache.flink.client.program.PackagedProgramUtils;
 import org.apache.flink.client.program.rest.RestClusterClient;
@@ -630,15 +631,18 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
             }
         }
 
+        /*TODO 部署前检查：jar包路径、conf路径、yarn最大核数....*/
         isReadyForDeployment(clusterSpecification);
 
         // ------------------ Check if the specified queue exists --------------------
 
+        /*TODO 检查指定的yarn队列是否存在*/
         checkYarnQueues(yarnClient);
 
         // ------------------ Check if the YARN ClusterClient has the requested resources
         // --------------
 
+        /*TODO 检查yarn是否有足够的资源*/
         // Create application via yarnClient
         final YarnClientApplication yarnApplication = yarnClient.createApplication();
         final GetNewApplicationResponse appResponse = yarnApplication.getNewApplicationResponse();
@@ -688,6 +692,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
         flinkConfiguration.set(
                 ClusterEntrypoint.INTERNAL_CLUSTER_EXECUTION_MODE, executionMode.toString());
 
+        /*TODO 开始启动AM*/
         ApplicationReport report =
                 startAppMaster(
                         flinkConfiguration,
@@ -863,6 +868,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
         org.apache.flink.core.fs.FileSystem.initialize(
                 configuration, PluginUtils.createPluginManagerFromRootFolder(configuration));
 
+        /*TODO 初始化、创建 Hadoop的 FileSystem*/
         final FileSystem fs = FileSystem.get(yarnConfiguration);
 
         // hard coded check for the GoogleHDFS client because its not overriding the getScheme()
@@ -881,6 +887,11 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 
         final List<Path> providedLibDirs =
                 Utils.getQualifiedRemoteProvidedLibDirs(configuration, yarnConfiguration);
+
+        /*TODO Yarn应用的文件上传器：FS、对应的HDFS路径
+         * 	   用来上传：用户jar包、flink的依赖、flink的配置文件（接下来接近300行，不用看）
+         * 	   直接跳到 fileUploader.close()
+         * */
 
         final Optional<Path> providedUsrLibDir =
                 Utils.getQualifiedRemoteProvidedUsrLib(configuration, yarnConfiguration);
