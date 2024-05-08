@@ -157,7 +157,7 @@ class PekkoRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
     }
 
     @Override
-    public Receive createReceive() {
+    public Receive createReceive() {    //接收其他rpc endpoint发送过来的消息
         return ReceiveBuilder.create()
                 .match(RemoteHandshakeMessage.class, this::handleHandshakeMessage)
                 .match(ControlMessages.class, this::handleControlMessage)
@@ -257,7 +257,7 @@ class PekkoRpcActor<T extends RpcEndpoint & RpcGateway> extends AbstractActor {
                                 String.format(
                                         "The rpc endpoint does not support the gateway %s.",
                                         handshakeMessage.getRpcGateway().getSimpleName())));
-            } else {
+            } else { /* todo 回应其他rpc endpoint，消息已经处理 */
                 getSender().tell(new Status.Success(HandshakeSuccessMessage.INSTANCE), getSelf());
             }
         }

@@ -99,13 +99,13 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
     // ------------------------------------------------------------------------
 
     /** RPC service to be used to start the RPC server and to obtain rpc gateways. */
-    private final RpcService rpcService;
+    private final RpcService rpcService;    //用于与其他RpcEndpoint的通信
 
     /** Unique identifier for this rpc endpoint. */
     private final String endpointId;
 
     /** Interface to access the underlying rpc server. */
-    protected final RpcServer rpcServer;
+    protected final RpcServer rpcServer;    //自身的服务
 
     /**
      * A reference to the endpoint's main thread, if the current method is called by the main
@@ -144,7 +144,7 @@ public abstract class RpcEndpoint implements RpcGateway, AutoCloseableAsync {
         this.rpcService = checkNotNull(rpcService, "rpcService");
         this.endpointId = checkNotNull(endpointId, "endpointId");
 
-        this.rpcServer = rpcService.startServer(this, loggingContext);
+        this.rpcServer = rpcService.startServer(this, loggingContext);  //启动自身服务
         this.resourceRegistry = new CloseableRegistry();
 
         this.mainThreadExecutor =

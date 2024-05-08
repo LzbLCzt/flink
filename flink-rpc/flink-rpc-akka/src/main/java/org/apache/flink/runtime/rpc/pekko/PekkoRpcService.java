@@ -92,7 +92,7 @@ public class PekkoRpcService implements RpcService {
 
     private final Object lock = new Object();
 
-    private final ActorSystem actorSystem;
+    private final ActorSystem actorSystem;  //flink 封装了ActorSystem
     private final PekkoRpcServiceConfiguration configuration;
 
     private final ClassLoader flinkClassLoader;
@@ -260,7 +260,7 @@ public class PekkoRpcService implements RpcService {
     }
 
     @Override
-    public <C extends RpcEndpoint & RpcGateway> RpcServer startServer(
+    public <C extends RpcEndpoint & RpcGateway> RpcServer startServer(  //启动服务
             C rpcEndpoint, Map<String, String> loggingContext) {
         checkNotNull(rpcEndpoint, "rpc endpoint");
 
@@ -325,6 +325,9 @@ public class PekkoRpcService implements RpcService {
         // code is loaded dynamically (for example from an OSGI bundle) through a custom ClassLoader
         ClassLoader classLoader = getClass().getClassLoader();
 
+        /*
+        TODO 通过代理转发，最终转发到InvocationHandler来处理请求
+         */
         @SuppressWarnings("unchecked")
         RpcServer server =
                 (RpcServer)

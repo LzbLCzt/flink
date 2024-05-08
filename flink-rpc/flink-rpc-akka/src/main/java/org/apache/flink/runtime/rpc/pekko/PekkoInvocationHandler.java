@@ -222,6 +222,9 @@ class PekkoInvocationHandler implements InvocationHandler, PekkoBasedEndpoint, R
         Duration futureTimeout =
                 RpcGatewayUtils.extractRpcTimeout(parameterAnnotations, args, timeout);
 
+        /*
+        todo 把消息封装成RpcInvocation
+         */
         final RpcInvocation rpcInvocation =
                 createRpcInvocationMessage(
                         method.getDeclaringClass().getSimpleName(),
@@ -234,7 +237,7 @@ class PekkoInvocationHandler implements InvocationHandler, PekkoBasedEndpoint, R
 
         final Object result;
 
-        if (Objects.equals(returnType, Void.TYPE)) {
+        if (Objects.equals(returnType, Void.TYPE)) {    /* todo 使用tell方式 */
             tell(rpcInvocation);
 
             result = null;
@@ -248,7 +251,7 @@ class PekkoInvocationHandler implements InvocationHandler, PekkoBasedEndpoint, R
 
             // execute an asynchronous call
             final CompletableFuture<?> resultFuture =
-                    ask(rpcInvocation, futureTimeout)
+                    ask(rpcInvocation, futureTimeout)   /* todo 使用ask方式 */
                             .thenApply(
                                     resultValue ->
                                             deserializeValueIfNeeded(
