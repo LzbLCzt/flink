@@ -2316,7 +2316,7 @@ public class StreamExecutionEnvironment implements AutoCloseable {
      */
     public JobExecutionResult execute(String jobName) throws Exception {
         final List<Transformation<?>> originalTransformations = new ArrayList<>(transformations);
-        StreamGraph streamGraph = getStreamGraph();
+        StreamGraph streamGraph = getStreamGraph(); //构建Stream Graph
         if (jobName != null) {
             streamGraph.setJobName(jobName);
         }

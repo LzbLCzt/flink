@@ -81,7 +81,7 @@ public class YarnClusterClientFactory
         yarnClient.init(yarnConfiguration);
         yarnClient.start();
 
-        return new YarnClusterDescriptor(   //yarnClient封装到YarnClusterDescriptor
+        return new YarnClusterDescriptor(   //todo yarnClient封装到YarnClusterDescriptor
                 configuration,
                 yarnConfiguration,
                 yarnClient,

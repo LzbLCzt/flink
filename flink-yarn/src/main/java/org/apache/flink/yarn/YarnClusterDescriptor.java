@@ -560,7 +560,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
             return deployInternal(
                     clusterSpecification,
                     "Flink per-job cluster",
-                    getYarnJobClusterEntrypoint(),
+                    getYarnJobClusterEntrypoint(),  //todo app master的入口类
                     jobGraph,
                     detached);
         } catch (Exception e) {
