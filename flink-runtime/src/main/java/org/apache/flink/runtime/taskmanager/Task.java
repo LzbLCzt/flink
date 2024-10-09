@@ -936,7 +936,7 @@ public class Task
             taskManagerActions.updateTaskExecutionState(
                     new TaskExecutionState(executionId, ExecutionState.RUNNING));
 
-            runWithSystemExitMonitoring(finalInvokable::invoke);
+            runWithSystemExitMonitoring(finalInvokable::invoke);    //实际执行：StreamTask.invoke
         } catch (Throwable throwable) {
             try {
                 runWithSystemExitMonitoring(() -> finalInvokable.cleanUp(throwable));

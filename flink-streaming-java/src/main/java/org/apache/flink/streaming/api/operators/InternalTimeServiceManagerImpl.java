@@ -75,7 +75,7 @@ public class InternalTimeServiceManagerImpl<K> implements InternalTimeServiceMan
     private final ProcessingTimeService processingTimeService;
     private final StreamTaskCancellationContext cancellationContext;
 
-    private final Map<String, InternalTimerServiceImpl<K, ?>> timerServices;
+    private final Map<String, InternalTimerServiceImpl<K, ?>> timerServices;    //key:自定义，一个operator用一个key
 
     private InternalTimeServiceManagerImpl(
             TaskIOMetricGroup taskIOMetricGroup,

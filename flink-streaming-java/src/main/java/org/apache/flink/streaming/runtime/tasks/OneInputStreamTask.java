@@ -235,7 +235,7 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
         @Override
         public void emitRecord(StreamRecord<IN> record) throws Exception {
             numRecordsIn.inc();
-            recordProcessor.accept(record);
+            recordProcessor.accept(record); //recordProcessor是接口，找到匿名实现类
         }
 
         @Override

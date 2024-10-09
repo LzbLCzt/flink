@@ -55,7 +55,7 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
 
     /** Event time timers that are currently in-flight. */
     protected final KeyGroupedInternalPriorityQueue<TimerHeapInternalTimer<K, N>>
-            eventTimeTimersQueue;
+            eventTimeTimersQueue;   //维护一个subtask注册的所有定时器
 
     /** Context that allows us to stop firing timers if the containing task has been cancelled. */
     protected final StreamTaskCancellationContext cancellationContext;

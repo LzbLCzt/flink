@@ -261,7 +261,7 @@ public class AsyncWaitOperator<IN, OUT>
             assert timeout > 0L;
             resultHandler.registerTimeout(timeout);
 
-            userFunction.asyncInvoke(element.getValue(), resultHandler);
+            userFunction.asyncInvoke(element.getValue(), resultHandler);    //执行用户自定义算子的业务逻辑
 
         } else {
             final ResultHandler resultHandler = new ResultHandler(element, entry);

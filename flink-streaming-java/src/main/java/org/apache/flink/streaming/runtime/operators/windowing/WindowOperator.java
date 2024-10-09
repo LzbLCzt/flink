@@ -445,7 +445,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     @Override
     public void onEventTime(InternalTimer<K, W> timer) throws Exception {
         triggerContext.key = timer.getKey();
-        triggerContext.window = timer.getNamespace();
+        triggerContext.window = timer.getNamespace();   //timer和窗口绑定，这里namespace = 一个窗口
 
         MergingWindowSet<W> mergingWindows;
 
