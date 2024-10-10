@@ -74,7 +74,7 @@ public abstract class StateTable<K, N, S>
      * Map for holding the actual state objects. The outer array represents the key-groups. All
      * array positions will be initialized with an empty state map.
      */
-    protected final StateMap<K, N, S>[] keyGroupedStateMaps;
+    protected final StateMap<K, N, S>[] keyGroupedStateMaps;    //todo 保存window中的流数据
 
     /**
      * @param keyContext the key context provides the key scope for all put/get/delete operations.

@@ -54,7 +54,7 @@ public class RecordProcessorUtils {
         }
 
         if (canOmitSetKeyContext) {
-            return input::processElement;
+            return input::processElement;   // todo 这里input指的就是不同的算子，window算子，key算子，等等
         } else if (input instanceof AsyncStateProcessing
                 && ((AsyncStateProcessing) input).isAsyncStateProcessingEnabled()) {
             return ((AsyncStateProcessing) input).getRecordProcessor(1);

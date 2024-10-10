@@ -112,7 +112,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
     private final KeySelector<IN, K> keySelector;
 
-    private final Trigger<? super IN, ? super W> trigger;
+    private final Trigger<? super IN, ? super W> trigger;   // todo EventTimeTrigger
 
     private final StateDescriptor<? extends AppendingState<IN, ACC>, ?> windowStateDescriptor;
 
@@ -290,7 +290,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
         final K key = this.<K>getKeyedStateBackend().getCurrentKey();   //此处获取到key的值，即keyBy方法字段的值
 
-        //// 判断Window是否是MergingWindowAssigner(合并窗口)的子类。比如SessionWindow属于MergingWindowAssigner
+        // todo 判断Window是否是MergingWindowAssigner(合并窗口)的子类。比如SessionWindow属于MergingWindowAssigner
         if (windowAssigner instanceof MergingWindowAssigner) {
             MergingWindowSet<W> mergingWindows = getMergingWindowSet();
 
@@ -393,7 +393,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
             // need to make sure to update the merging state in state
             mergingWindows.persist();
-        } else {    // 非MergingWindowAssigner部分的处理逻辑
+        } else {    //todo 非MergingWindowAssigner部分的处理逻辑
             for (W window : elementWindows) {
 
                 // drop if the window is already late

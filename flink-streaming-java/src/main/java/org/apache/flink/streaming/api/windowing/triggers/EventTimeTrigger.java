@@ -38,7 +38,7 @@ public class EventTimeTrigger extends Trigger<Object, TimeWindow> {
             Object element, long timestamp, TimeWindow window, TriggerContext ctx)
             throws Exception {
         if (window.maxTimestamp() <= ctx.getCurrentWatermark()) {
-            // if the watermark is already past the window fire immediately
+            //todo  if the watermark is already past the window fire immediately
             return TriggerResult.FIRE;
         } else {
             ctx.registerEventTimeTimer(window.maxTimestamp());
