@@ -149,7 +149,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     // ------------------------------------------------------------------------
 
     /** The state in which the window contents is stored. Each window is a namespace */
-    private transient InternalAppendingState<K, W, IN, ACC, ACC> windowState;
+    private transient InternalAppendingState<K, W, IN, ACC, ACC> windowState;   //todo 用于存放窗口状态
 
     /**
      * The {@link #windowState}, typed to merging state for merging windows. Null if the window
@@ -176,7 +176,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     // State that needs to be checkpointed
     // ------------------------------------------------------------------------
 
-    protected transient InternalTimerService<W> internalTimerService;
+    protected transient InternalTimerService<W> internalTimerService;   //todo 用于处理定时器
 
     /** Creates a new {@code WindowOperator} based on the given policies and user functions. */
     public WindowOperator(
@@ -300,7 +300,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 // is the merged window and we work with that. If we don't merge then
                 // actualWindow == window
                 W actualWindow =
-                        mergingWindows.addWindow(
+                        mergingWindows.addWindow(   //todo 触发窗口合并
                                 window,
                                 new MergingWindowSet.MergeFunction<W>() {
                                     @Override
@@ -341,7 +341,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                                         triggerContext.key = key;
                                         triggerContext.window = mergeResult;
 
-                                        triggerContext.onMerge(mergedWindows);
+                                        triggerContext.onMerge(mergedWindows);  //更新Trigger状态
 
                                         for (W m : mergedWindows) {
                                             triggerContext.window = m;
@@ -402,28 +402,28 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
                 }
                 isSkippedElement = false;   //标记该元素得到了处理
 
-                // windowState为HeapListState
-                // HeapListState为内存中存储的分区化的链表状态(ListState)，使用namespace区分不同窗口的数据。可以理解为一个Map，key为window对象，value为元素的值
+                // todo windowState为HeapListState
+                // todo HeapListState为内存中存储的分区化的链表状态(ListState)，使用namespace区分不同窗口的数据。可以理解为一个Map，key为window对象，value为元素的值
                 windowState.setCurrentNamespace(window);
                 windowState.add(element.getValue());
 
                 triggerContext.key = key;
                 triggerContext.window = window;
 
-                TriggerResult triggerResult = triggerContext.onElement(element);
+                TriggerResult triggerResult = triggerContext.onElement(element);    //todo trigger用于检查是否触发window计算
 
-                if (triggerResult.isFire()) {   //触发计算
+                if (triggerResult.isFire()) {   //todo 触发计算
                     ACC contents = windowState.get();   // 取出windowState当前namespace下所有的元素。即当前window下所有的元素
                     if (contents == null) {
                         continue;
                     }
-                    emitWindowContents(window, contents);   //// 使用用户传入的处理函数来计算window内数据
+                    emitWindowContents(window, contents);   //todo 使用用户传入的处理函数来计算window内数据
                 }
 
                 if (triggerResult.isPurge()) {  //是否清理window数据
                     windowState.clear();
                 }
-                registerCleanupTimer(window);// 注册timer，当前时间已经过了window的cleanup时间（后面有cleanup time的含义），会根据窗口的类型调用对应的onProcessingTime方法或者是onEventTime方法
+                registerCleanupTimer(window);// todo 注册timer，当前时间已经过了window的cleanup时间（后面有cleanup time的含义），会根据窗口的类型调用对应的onProcessingTime方法或者是onEventTime方法
             }
         }
 
@@ -445,7 +445,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     @Override
     public void onEventTime(InternalTimer<K, W> timer) throws Exception {
         triggerContext.key = timer.getKey();
-        triggerContext.window = timer.getNamespace();   //timer和窗口绑定，这里namespace = 一个窗口
+        triggerContext.window = timer.getNamespace();   //todo timer和窗口绑定，这里namespace = 一个窗口
 
         MergingWindowSet<W> mergingWindows;
 
