@@ -35,7 +35,7 @@ public interface WatermarkGenerator<T> {
      * Called for every event, allows the watermark generator to examine and remember the event
      * timestamps, or to emit a watermark based on the event itself.
      */
-    void onEvent(T event, long eventTimestamp, WatermarkOutput output);
+    void onEvent(T event, long eventTimestamp, WatermarkOutput output); //todo 用于更新maxTimestamp
 
     /**
      * Called periodically, and might emit a new watermark, or not.
@@ -43,5 +43,5 @@ public interface WatermarkGenerator<T> {
      * <p>The interval in which this method is called and Watermarks are generated depends on {@link
      * ExecutionConfig#getAutoWatermarkInterval()}.
      */
-    void onPeriodicEmit(WatermarkOutput output);
+    void onPeriodicEmit(WatermarkOutput output);    //todo 用于生成并emit watermark
 }

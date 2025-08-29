@@ -77,6 +77,9 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
     private static final Logger LOG = LoggerFactory.getLogger(TwoPhaseCommitSinkFunction.class);
 
+    /*
+
+     */
     protected final LinkedHashMap<Long, TransactionHolder<TXN>> pendingCommitTransactions =
             new LinkedHashMap<>();
 
@@ -304,6 +307,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
             logWarningIfTimeoutAlmostReached(pendingTransaction);
             try {
+                // todo commit
                 commit(pendingTransaction.handle);
             } catch (Throwable t) {
                 if (firstError == null) {
@@ -346,17 +350,18 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
 
         // no need to start new transactions after sink function is closed (no more input data)
         if (!finished) {
-            currentTransactionHolder = beginTransactionInternal();
+            currentTransactionHolder = beginTransactionInternal();  //todo 开启新事务
         } else {
             currentTransactionHolder = null;
         }
         LOG.debug("{} - started new transaction '{}'", name(), currentTransactionHolder);
 
+        // 更新state
         state.update(
                 Collections.singletonList(
                         new State<>(
-                                this.currentTransactionHolder,
-                                new ArrayList<>(pendingCommitTransactions.values()),
+                                this.currentTransactionHolder,  // 保存当前事务
+                                new ArrayList<>(pendingCommitTransactions.values()),    // 保存所有待commit的事务
                                 userContext)));
     }
 
@@ -380,7 +385,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         state = context.getOperatorStateStore().getListState(stateDescriptor);
 
         boolean recoveredUserContext = false;
-        if (context.isRestored()) {
+        if (context.isRestored()) { //todo 如果是从checkpoint中恢复
             LOG.info("{} - restoring state", name());
             for (State<TXN, CONTEXT> operatorState : state.get()) {
                 userContext = operatorState.getContext();
@@ -389,7 +394,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
                 List<TXN> handledTransactions = new ArrayList<>(recoveredTransactions.size() + 1);
                 for (TransactionHolder<TXN> recoveredTransaction : recoveredTransactions) {
                     // If this fails to succeed eventually, there is actually data loss
-                    recoverAndCommitInternal(recoveredTransaction);
+                    recoverAndCommitInternal(recoveredTransaction); // 针对待commit的事务，尝试commit
                     handledTransactions.add(recoveredTransaction.handle);
                     LOG.info("{} committed recovered transaction {}", name(), recoveredTransaction);
                 }
@@ -397,7 +402,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
                 {
                     if (operatorState.getPendingTransaction() != null) {
                         TXN transaction = operatorState.getPendingTransaction().handle;
-                        recoverAndAbort(transaction);
+                        recoverAndAbort(transaction);   // 针对pending但未commit的事务，尝试abort
                         handledTransactions.add(transaction);
                         LOG.info(
                                 "{} aborted recovered transaction {}",
@@ -421,7 +426,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT> extends RichS
         }
         this.pendingCommitTransactions.clear();
 
-        currentTransactionHolder = beginTransactionInternal();
+        currentTransactionHolder = beginTransactionInternal();  // 开启新事务
         LOG.debug("{} - started new transaction '{}'", name(), currentTransactionHolder);
     }
 

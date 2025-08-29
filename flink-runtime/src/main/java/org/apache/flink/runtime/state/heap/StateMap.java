@@ -31,7 +31,8 @@ import java.util.stream.Stream;
  * Base class for state maps.
  *
  * @param <K> type of key
- * @param <N> type of namespace
+ * @param <N> type of namespace, 一个namespace通常用于区分同一个key下的不同状态域，方便不同的算子或者不同时间窗口隔离状态。
+ *      namespace经常用于对状态进行多维划分，例如对不同窗口（Window）使用不同的namespace
  * @param <S> type of state
  */
 public abstract class StateMap<K, N, S> implements Iterable<StateEntry<K, N, S>> {

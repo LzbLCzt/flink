@@ -149,7 +149,7 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
             new StateMapEntry<>(new Object(), new Object(), new Object(), 0, null, 0, 0);
 
     /** Maintains an ordered set of version ids that are still in use by unreleased snapshots. */
-    private final TreeSet<Integer> snapshotVersions;
+    private final TreeSet<Integer> snapshotVersions;     // 所有 正在进行中的 snapshot 的 version
 
     /**
      * This is the primary entry array (hash directory) of the state map. If no incremental rehash
@@ -171,13 +171,16 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
     private int incrementalRehashTableSize;
 
     /** The next index for a step of incremental rehashing in the primary table. */
-    private int rehashIndex;
+    private int rehashIndex;    // 用来记录当前 rehash 迁移的进度， < rehashIndex的bucket都已经迁移到了incrementalRehashTable
 
     /** The current version of this map. Used for copy-on-write mechanics. */
-    private int stateMapVersion;
+    private int stateMapVersion;     // 当前 StateMap 的 version
 
     /** The highest version of this map that is still required by any unreleased snapshot. */
-    private int highestRequiredSnapshotVersion;
+    /**
+     * 这个版本号用于判断一个条目或其状态是否需要被复制
+     */
+    private int highestRequiredSnapshotVersion;   // 正在进行中的那些 snapshot 的最大版本号
 
     /**
      * The last namespace that was actually inserted. This is a small optimization to reduce
@@ -450,7 +453,10 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
     // Private utility functions for StateMap management
     // -------------------------------------------------------------
 
-    /** @see #releaseSnapshot(StateMapSnapshot) */
+    /**
+     * 当一个异步快照完成后，外部会调用 releaseSnapshot(snapshotVersion)
+     * @param snapshotVersion
+     */
     @VisibleForTesting
     void releaseSnapshot(int snapshotVersion) {
         // we guard against concurrent modifications of highestRequiredSnapshotVersion between
@@ -473,6 +479,14 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
     @SuppressWarnings("unchecked")
     StateMapEntry<K, N, S>[] snapshotMapArrays() {
 
+        /**
+         // 当前 StateMap 的 version
+         private int stateMapVersion;
+         // 所有 正在进行中的 snapshot 的 version
+         private final TreeSet<Integer> snapshotVersions;
+         // 正在进行中的那些 snapshot 的最大版本号
+         private int highestRequiredSnapshotVersion;
+         */
         // we guard against concurrent modifications of highestRequiredSnapshotVersion between
         // snapshot and release.
         // Only stale reads of from the result of #releaseSnapshot calls are ok. This is why we must
@@ -504,10 +518,20 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
         // code(in case that
         // the rehashing algorithm may changed in the future), we do this check for all the case.
         final int totalMapIndexSize = rehashIndex + table.length;
-        final int copiedArraySize = Math.max(totalMapIndexSize, size());
+        final int copiedArraySize = Math.max(totalMapIndexSize, size());    // 这里size指的是primaryTableSize和incrementalRehashTableSize有数据的bucket之和，并非table.length
         final StateMapEntry<K, N, S>[] copy = new StateMapEntry[copiedArraySize];
 
+        // 2、 将现在 primary 和 Increment 的元素浅拷贝一份到 copy 中
+        // copy 策略：copy 数组长度为 primary 中剩余的桶数 + Increment 中有数据的桶数
+        // primary 中剩余的数据放在 copy 数组的前面，Increment 中低位数据随后，
+        // Increment 中高位数据放到 copy 数组的最后
         if (isRehashing()) {
+            /**
+             如果在扩容过程中，需要拷贝分为三部分：
+             1. primaryTable未迁移的数据: primaryTable[rehashIndex: primaryTable.length - rehashIndex]
+             2. incrementalRehashTable中从primaryTable迁移过来的数据: incrementalRehashTable[0: rehashIndex]
+             3. incrementalRehashTable新增的数据：incrementalRehashTable[incrementalRehashTable / 2: rehashIndex]
+             */
             // consider both maps for the snapshot, the rehash index tells us which part of the two
             // maps we need
             final int localRehashIndex = rehashIndex;
@@ -526,7 +550,10 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
                     localCopyLength + localRehashIndex,
                     localRehashIndex);
         } else {
-            // we only need to copy the primary table
+            /**
+             如果不在扩容过程中，只需要将primaryTable拷贝一份即可
+             */
+            // we only need to copy the primary table (浅拷贝)
             System.arraycopy(table, 0, copy, 0, table.length);
         }
 
@@ -601,6 +628,9 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
      *     code.
      */
     private StateMapEntry<K, N, S>[] selectActiveTable(int hashCode) {
+        //   // 计算 hashCode 应该被分到 primaryTable 的哪个桶中 : (hashCode & (primaryTable.length - 1))
+        // 大于等于 rehashIndex 的桶还未迁移，应该去 primaryTable 中去查找。
+        // 小于 rehashIndex 的桶已经迁移完成，应该去 incrementalRehashTable 中去查找。
         return (hashCode & (primaryTable.length - 1)) >= rehashIndex
                 ? primaryTable
                 : incrementalRehashTable;
@@ -642,7 +672,7 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
     private int computeHashForOperationAndDoIncrementalRehash(K key, N namespace) {
 
         if (isRehashing()) {
-            incrementalRehash();
+            incrementalRehash(); // ***incremental rehash
         }
 
         return compositeHash(key, namespace);
@@ -658,20 +688,24 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
         int oldCapacity = oldMap.length;
         int newMask = newMap.length - 1;
         int requiredVersion = highestRequiredSnapshotVersion;
-        int rhIdx = rehashIndex;
+        int rhIdx = rehashIndex;    // 待迁移bucket的起始位置
+        // 记录本次迁移了几个元素
         int transferred = 0;
 
-        // we migrate a certain minimum amount of entries from the old to the new table
+        // 每次至少迁移 MIN_TRANSFERRED_PER_INCREMENTAL_REHASH 个元素到新桶
+        // MIN_TRANSFERRED_PER_INCREMENTAL_REHASH 默认为 4
         while (transferred < MIN_TRANSFERRED_PER_INCREMENTAL_REHASH) {
 
-            StateMapEntry<K, N, S> e = oldMap[rhIdx];
+            StateMapEntry<K, N, S> e = oldMap[rhIdx];   //获取当前桶的head（头节点）
 
-            while (e != null) {
+            while (e != null) {   // 每次迁移必须保证整个桶被迁移完，不能是某个桶迁移到一半
                 // copy-on-write check for entry
-                if (e.entryVersion < requiredVersion) {
+                if (e.entryVersion < requiredVersion) {  // todo 遇到版本比 highestRequiredSnapshotVersion 小的元素，则 copy 一份，目的是保障在做checkpoint这个期间state发生改变时，保留改变前的state
                     e = new StateMapEntry<>(e, stateMapVersion);
                 }
                 StateMapEntry<K, N, S> n = e.next;
+
+                // 迁移当前元素 e 到新的 table 中，插入到链表头部
                 int pos = e.hash & newMask;
                 e.next = newMap[pos];
                 newMap[pos] = e;
@@ -680,9 +714,9 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
             }
 
             oldMap[rhIdx] = null;
-            if (++rhIdx == oldCapacity) {
+            if (++rhIdx == oldCapacity) { // todo rhIdx 之前的桶已经迁移完，rhIdx == oldCapacity 就表示迁移完成了
                 // here, the rehash is complete and we release resources and reset fields
-                primaryTable = newMap;
+                primaryTable = newMap;  //将incrementalRehashTable替换为primaryTable
                 incrementalRehashTable = (StateMapEntry<K, N, S>[]) EMPTY_TABLE;
                 primaryTableSize += incrementalRehashTableSize;
                 incrementalRehashTableSize = 0;
@@ -830,7 +864,7 @@ public class CopyOnWriteStateMap<K, N, S> extends StateMap<K, N, S> {
          * Link to another {@link StateMapEntry}. This is used to resolve collisions in the {@link
          * CopyOnWriteStateMap} through chaining.
          */
-        @Nullable StateMapEntry<K, N, S> next;
+        @Nullable StateMapEntry<K, N, S> next;  // todo 单链表，指向到下一个 {@link StateMapEntry}
 
         /**
          * The version of this {@link StateMapEntry}. This is meta data for copy-on-write of the map
