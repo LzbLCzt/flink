@@ -28,7 +28,7 @@ import static org.apache.flink.util.Preconditions.checkArgument;
  * Represents combined value and status of a watermark for a set number of input partial watermarks.
  */
 @Internal
-public final class IndexedCombinedWatermarkStatus {//aa
+public final class IndexedCombinedWatermarkStatus {
     private final CombinedWatermarkStatus combinedWatermarkStatus;
     private final CombinedWatermarkStatus.PartialWatermark[] partialWatermarks;
 
